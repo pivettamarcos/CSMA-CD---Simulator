@@ -8,9 +8,32 @@
 <body>
 
     <h1>Simulador CSMA/CD</h1>
-    <input type="text" id="inputChangeSecsBetweenTimeSlots"> </input>
-    <button id="buttonChangeSecsBetweenTimeSlots"> Mudar tempo entre time-slots </button>
 
-    <button id="buttonAssembleFrame"> Criar frame </button>
+    <div>
+        <input type="text" placeholder="Tempo entre time-slots" id="inputChangeSecsBetweenTimeSlots"> </input>
+        <button id="buttonChangeSecsBetweenTimeSlots"> Mudar tempo entre time-slots </button>
+    </div>
+
+    <div>
+        <button id="buttonAssembleFrame"> Criar frame </button>
+    </div>
+    <div>
+        <input type="text" placeholder="Posição da estação no meio" id="inputStationPosition"> </input>
+
+        <button id="buttonCreateStation"> Adicionar nova estação </button>
+    </div>
+
+    <div>
+        <input type="text" placeholder="Estação emissora" id="inputStationEmitter"> </input>
+        <input type="text" placeholder="Estação receptora" id="inputStationReceiver"> </input>
+
+
+        <button id="buttonInjectBit"> Injetar bit </button>
+    </div>
+
+    <div>
+        <button id="buttonIsMediaIdle"> Verificar liberdade do meio </button>
+    </div>
+
 </body>
 </html>

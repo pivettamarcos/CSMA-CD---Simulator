@@ -2,27 +2,98 @@ let simulation;
 
 class MediaDataArray {
     constructor(numBits) {
-        this.bits = new Array(numBits);
+        this.rightGoingBits = new Array(numBits);
+        this.leftGoingBits = new Array(numBits);
+
         this.numBits = numBits;
     }
 
-    initializeBitArray() {
-        for (let i = 0; i < this.numBits; i++) 
-            this.bits.push(null);
+    moveBits() {
+        let newBitArray = new Array(this.numBits);
+        for (let i = 0; i < this.rightGoingBits.length - 1; i++)
+            newBitArray[i + 1] = this.rightGoingBits[i];
+
+        this.rightGoingBits = newBitArray;
+
+        newBitArray = new Array(this.numBits);
+        for (let i = this.leftGoingBits.length - 1; i > 0; i--)
+            newBitArray[i - 1] = this.leftGoingBits[i];
+
+        this.leftGoingBits = newBitArray;
     }
 }
 
 class Media {
-    constructor(dataArray) {
-        this.connections;
-        this.dataArray = dataArray;
+    constructor(numBits, dataArray) {
+        this.connections = new Array(numBits);
+        this.dataArray = new MediaDataArray(numBits); 
+    }
+
+    updateDataArray() {
+       this.dataArray.moveBits();
+    }
+
+    injectBit(direction, bitValue, arrayPos) {
+        if (direction == "rightGoing")
+            this.dataArray.rightGoingBits[arrayPos] = bitValue;
+        else if(direction == "leftGoing")
+            this.dataArray.leftGoingBits[arrayPos] = bitValue;
+
+    }
+
+    createConnection(station, stationPosition) {
+        let newMediaConnection = new MediaConnection(stationPosition, station, this);
+        this.connections[stationPosition] = newMediaConnection;
+
+        return newMediaConnection;
+    }
+
+    isMediaPositionAvailable(mediaPosition) {
+        if (this.connections[mediaPosition] === undefined && mediaPosition < this.connections.length)
+            return true;
+
+        return false;
+    }
+}
+
+class MediaConnection{
+    constructor(mediaPosition, station, media) {
+        this.mediaPosition = mediaPosition;
+        this.station = station;
+        this.media = media;
+
+        console.log("(( NEW CONNECTION IN "+this.mediaPosition+ " ))");
+    }
+
+    isMediaIdle() {
+        console.log(this.media);
+        for (let i = 0; i < this.media.dataArray.bits.length; i++)
+            if (this.media.dataArray.bits[i])
+                return false;
+
+        return true;
+    }
+
+    returnMediaPositionOfStation(stationMAC) {
+        for (let i = 0; i < this.media.connections.length; i++) {
+            if (this.media.connections[i] !== undefined)
+                if (this.media.connections[i].station.macAddress === stationMAC)
+                    return this.media.connections[i].mediaPosition;
+        }
+    }
+
+    injectBit(direction, bitValue) {
+        if (this.isMediaIdle)
+            this.media.injectBit(direction, bitValue, this.mediaPosition);
     }
 }
 
 class Station {
-    constructor(ipAddress) {
-        this.ipAddress = ipAddress;
-        console.log("(( CREATED A NEW MACHINE " + ipAddress + " ))");
+    constructor(media, macAddress, stationPosition) {
+        this.macAddress = macAddress;
+        this.stationPosition = stationPosition;
+        this.connection = media.createConnection(this, stationPosition);
+        console.log("(( CREATED A NEW MACHINE " + macAddress + " ))");
     }
 
     assembleFrame(frameLengthBits) {
@@ -31,14 +102,16 @@ class Station {
         return frame;
     }
 
-    isMediaIdle(media) {
-        let isIdle = true;
+    sendBitToStation(receiverMAC, bitValue) {
+        if (this.connection.returnMediaPositionOfStation(receiverMAC) > this.stationPosition)
+            this.injectBit("rightGoing", bitValue)
+        else
+            this.injectBit("leftGoing", bitValue)
+    }
 
-        for (let i = 0, len = media.dataArray.length; i < len; i++) {
-            isIdle = ( media.dataArray[i] ? false : true);
-        }
-
-        return isIdle;
+    injectBit(direction, bitValue) {
+        console.log("inhjet" + direction);
+        this.connection.injectBit(direction, bitValue);
     }
 }
 
@@ -71,36 +144,52 @@ class Frame {
     }
 }
 
-class DHCPServer {
+class MACGenerator {
     constructor() {
-        this.runningIPs = [];
+        this.runningMACs = [];
     }
 
-    assignNewIP() {
+    assignNewMAC() {
         let isUnique = true; 
-        let newIP;
+        let newMAC;
+        let escapeCont = 0;
         do{
             isUnique = true;
-            newIP = "192.168.72." + Math.floor(Math.random() * 256);
-            for (let i = 0; i < this.runningIPs.length; i++) {
-                if (newIP === this.runningIPs[i])
+            newMAC = this.generateNewMac();
+            for (let i = 0; i < this.runningMACs.length; i++) {
+                if (newMAC === this.runningMACs[i])
                     isUnique = false;
             }
+            escapeCont++;
+        }while(!isUnique || escapeCont > 257)
 
-        }while(!isUnique);
+        if(escapeCont > 257)
+            return undefined;
 
-        this.runningIPs.push(newIP);
-        return newIP;
+        this.runningMACs.push(newMAC);
+        return newMAC;
+    }
+
+    generateNewMac() {
+        var hexDigits = "0123456789ABCDEF";
+        var macAddress = "";
+        for (var i = 0; i < 6; i++) {
+            macAddress += hexDigits.charAt(Math.round(Math.random() * 15));
+            macAddress += hexDigits.charAt(Math.round(Math.random() * 15));
+            if (i != 5) macAddress += ":";
+        }
+
+        return macAddress;
     }
 }
 
 class Simulation {
-    constructor(secsBetweenTimeSlots, media, DHCPServer, numStations) {
+    constructor(secsBetweenTimeSlots, media, MACGenerator, numStations) {
         this.timeSlotsSinceStart = 0;
 
         this.secsBetweenTimeSlots = secsBetweenTimeSlots;
         this.media = media;
-        this.DHCPServer = DHCPServer;
+        this.MACGenerator = MACGenerator;
         this.stations = [];
         this.numStations = numStations;
 
@@ -111,19 +200,31 @@ class Simulation {
 
     startSimulation() {
         console.log("== Simulation Started ==");
-        console.log("// ASSIGNING IPs WITH DHCP SERVER \\");
+        //console.log("// ASSIGNING IPs WITH DHCP SERVER \\");
 
-        for (let i = 0; i < this.numStations; i++)
-            this.createStation();
+        /*for (let i = 0; i < this.numStations; i++)
+            this.createStation();*/
 
         this.simulationClock = setInterval(this.passTimeSlot.bind(this), this.secsBetweenTimeSlots);
     };
 
-    createStation() {
-        this.stations.push(new Station(this.DHCPServer.assignNewIP()));
+    createStation(stationPosition) {
+        let successfull = true;
+
+        if(this.media.isMediaPositionAvailable(stationPosition)){
+            let newMAC = this.MACGenerator.assignNewMAC();
+            if (newMAC) {
+                let newStation = new Station(this.media, newMAC, stationPosition);
+                this.stations.push(newStation);
+            }else{
+                console.log("xx NO MAC AVAILABLE xx");
+            }
+        }else{
+            console.log("xx MEDIA POSITION UNAVAILABLE xx");
+        }
     }
 
-    assignIpAddresses() {
+    assignMacAddresses() {
         for (let i = 0; i < this.stations.length; i++) {
             this.stations[i]
         }
@@ -138,14 +239,24 @@ class Simulation {
 
     passTimeSlot() {
         this.timeSlotsSinceStart++;
+        console.log(">> RIGHT GOING BITS >>");
+        console.log(this.media.dataArray.rightGoingBits);
+        console.log("<< LEFT GOING BITS <<");
+        console.log(this.media.dataArray.leftGoingBits);
+
         console.log("-- Time slots since start -- (" + this.timeSlotsSinceStart + ")");
-        console.log(this.media.dataArray);
-        //this.media.updateDataArray();
+        this.media.updateDataArray();
     };
+
+    getMachineWithMAC(MAC) {
+        for (let i = 0; i < this.stations.length; i++)
+            if (this.stations[i].macAddress == MAC)
+                return this.stations[i];
+    }
 }
 
 function runSimulation() {
-    simulation = new Simulation(3000, new Media(new MediaDataArray(10)), new DHCPServer(), 5);
+    simulation = new Simulation(3000, new Media(10), new MACGenerator(), 5);
 
     addEventListeners();
 }
@@ -160,7 +271,19 @@ function addEventListeners() {
     });
 
     document.getElementById("buttonAssembleFrame").addEventListener("click", () => {
-        console.log(simulation.stations[0].assembleFrame());
+        console.log("++ Assembling frame "+simulation.stations[0].assembleFrame());
+    });
+
+    document.getElementById("buttonCreateStation").addEventListener("click", () => {
+        simulation.createStation(document.getElementById("inputStationPosition").value);
+    });
+
+    document.getElementById("buttonInjectBit").addEventListener("click", () => {
+        simulation.getMachineWithMAC(document.getElementById("inputStationEmitter").value).sendBitToStation(document.getElementById("inputStationReceiver").value, 1);
+    });
+
+    document.getElementById("buttonIsMediaIdle").addEventListener("click", () => {
+        console.log("Is media idle? "+simulation.stations[0].connection.isMediaIdle());
     });
 }
 
