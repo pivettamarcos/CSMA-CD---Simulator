@@ -1,11 +1,34 @@
 let simulation;
 
-class MediaDataArray {
-    constructor(numBits) {
+class Media {
+    constructor() {
+        this.sharedMediaBuffer = this.initializeSharedArrayBuffer();
+        this.bufferView;
+        /*this.arr = new Int8Array(this.sharedBuffer);
+        /* setting data 
+        this.arr[0] = 9;
+
         this.rightGoingBits = new Array(numBits);
         this.leftGoingBits = new Array(numBits);
 
-        this.numBits = numBits;
+        this.numBits = 8;*/
+    }
+
+    initializeSharedArrayBuffer(){
+        let sharedMediaBuffer = new SharedArrayBuffer(8);
+        let bufferView = new Int8Array(this.sharedMediaBuffer)
+        for(let i = 0; i < bufferView.length; i++){
+            bufferView[i] = 0;
+        }
+
+        this.bufferView = bufferView;
+
+        return sharedMediaBuffer;
+    }
+
+    /*
+    updateDataArray() {
+        this.moveBits();
     }
 
     moveBits() {
@@ -20,42 +43,10 @@ class MediaDataArray {
             newBitArray[i - 1] = this.leftGoingBits[i];
 
         this.leftGoingBits = newBitArray;
-    }
+    }*/
 }
 
-class Media {
-    constructor(numBits, dataArray) {
-        this.connections = new Array(numBits);
-        this.dataArray = new MediaDataArray(numBits); 
-    }
-
-    updateDataArray() {
-       this.dataArray.moveBits();
-    }
-
-    injectBit(direction, bitValue, arrayPos) {
-        if (direction == "rightGoing")
-            this.dataArray.rightGoingBits[arrayPos] = bitValue;
-        else if(direction == "leftGoing")
-            this.dataArray.leftGoingBits[arrayPos] = bitValue;
-
-    }
-
-    createConnection(station, stationPosition) {
-        let newMediaConnection = new MediaConnection(stationPosition, station, this);
-        this.connections[stationPosition] = newMediaConnection;
-
-        return newMediaConnection;
-    }
-
-    isMediaPositionAvailable(mediaPosition) {
-        if (this.connections[mediaPosition] === undefined && mediaPosition < this.connections.length)
-            return true;
-
-        return false;
-    }
-}
-
+/*
 class MediaConnection{
     constructor(mediaPosition, station, media) {
         this.mediaPosition = mediaPosition;
@@ -113,9 +104,10 @@ class Station {
         console.log("inhjet" + direction);
         this.connection.injectBit(direction, bitValue);
     }
-}
+}*/
 
-class Frame {
+/*
+/*class Frame {
     constructor(sourceStation, destinationStation, frameLengthBits) {
         this.sourceStation = sourceStation;
         this.destinationStation = destinationStation;
@@ -142,7 +134,7 @@ class Frame {
         
         return color;
     }
-}
+}*/
 
 class MACGenerator {
     constructor() {
@@ -184,14 +176,15 @@ class MACGenerator {
 }
 
 class Simulation {
-    constructor(secsBetweenTimeSlots, media, MACGenerator, numStations) {
+    constructor(secsBetweenTimeSlots, mediaSize, MACGenerator) {
         this.timeSlotsSinceStart = 0;
 
         this.secsBetweenTimeSlots = secsBetweenTimeSlots;
-        this.media = media;
+
+        this.media = new Media(mediaSize);
+        this.stations = new Array(mediaSize);
+
         this.MACGenerator = MACGenerator;
-        this.stations = [];
-        this.numStations = numStations;
 
         this.simulationClock = undefined;
 
@@ -210,12 +203,19 @@ class Simulation {
 
     createStation(stationPosition) {
         let successfull = true;
-
-        if(this.media.isMediaPositionAvailable(stationPosition)){
+        if(this.stations[stationPosition] === undefined){
             let newMAC = this.MACGenerator.assignNewMAC();
             if (newMAC) {
-                let newStation = new Station(this.media, newMAC, stationPosition);
-                this.stations.push(newStation);
+                let worker = new Worker('station.js');
+                this.stations[stationPosition] = worker;
+
+                worker.postMessage({type: "threadInitialization", information: {mediaArray: this.media.sharedMediaBuffer ,macAddress: newMAC, stationPosition: stationPosition}});
+
+                worker.onmessage = function(e) {
+                    console.log('Message received from worker');
+                }
+
+                this.stations.push(worker);
             }else{
                 console.log("xx NO MAC AVAILABLE xx");
             }
@@ -239,13 +239,8 @@ class Simulation {
 
     passTimeSlot() {
         this.timeSlotsSinceStart++;
-        console.log(">> RIGHT GOING BITS >>");
-        console.log(this.media.dataArray.rightGoingBits);
-        console.log("<< LEFT GOING BITS <<");
-        console.log(this.media.dataArray.leftGoingBits);
-
-        console.log("-- Time slots since start -- (" + this.timeSlotsSinceStart + ")");
-        this.media.updateDataArray();
+        console.log(new Int8Array(this.media.sharedMediaBuffer));
+       //console.log("-- Time slots since start -- (" + this.timeSlotsSinceStart + ")");
     };
 
     getMachineWithMAC(MAC) {
@@ -256,7 +251,7 @@ class Simulation {
 }
 
 function runSimulation() {
-    simulation = new Simulation(3000, new Media(10), new MACGenerator(), 5);
+    simulation = new Simulation(3000, 8, new MACGenerator());
 
     addEventListeners();
 }
@@ -282,11 +277,12 @@ function addEventListeners() {
         simulation.getMachineWithMAC(document.getElementById("inputStationEmitter").value).sendBitToStation(document.getElementById("inputStationReceiver").value, 1);
     });
 
-    document.getElementById("buttonIsMediaIdle").addEventListener("click", () => {
-        console.log("Is media idle? "+simulation.stations[0].connection.isMediaIdle());
-    });
+   /* document.getElementById("buttonIsMediaIdle").addEventListener("click", () => {
+        console.log("Is media idle? "+simulation.stations[0].isMediaIdle());
+    });*/
 }
 
-//RUN SIMULATION IF WINDOW LOAD
+
+//RUN SIMULAT"ION IF WINDOW LOAD
 window.onload = runSimulation;
 

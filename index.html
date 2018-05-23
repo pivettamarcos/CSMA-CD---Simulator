@@ -1,7 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/92/three.min.js"></script>
     <script src="simulator.js"></script>
+    <script src="threejsController.js"></script>
+
 
     <title>CSMA/CD Simulator</title>
 </head>
@@ -18,14 +22,14 @@
         <button id="buttonAssembleFrame"> Criar frame </button>
     </div>
     <div>
-        <input type="text" placeholder="Posição da estação no meio" id="inputStationPosition"> </input>
+        <input type="text" placeholder="PosiÃ§Ã£o da EstaÃ§Ã£o no meio" id="inputStationPosition"> </input>
 
-        <button id="buttonCreateStation"> Adicionar nova estação </button>
+        <button id="buttonCreateStation"> Adicionar nova estaÃ§Ã£oo </button>
     </div>
 
     <div>
-        <input type="text" placeholder="Estação emissora" id="inputStationEmitter"> </input>
-        <input type="text" placeholder="Estação receptora" id="inputStationReceiver"> </input>
+        <input type="text" placeholder="EstaÃ§Ã£o emissora" id="inputStationEmitter"> </input>
+        <input type="text" placeholder="EstaÃ§Ã£o receptora" id="inputStationReceiver"> </input>
 
 
         <button id="buttonInjectBit"> Injetar bit </button>
