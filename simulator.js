@@ -67,8 +67,6 @@ class Simulation {
         this.medium = new Medium(mediumSize);
         this.stations = new Array(mediumSize);
 
-        console.log(this.stations);
-
         this.MACGenerator = MACGenerator;
 
         this.simulationClock = undefined;
@@ -139,8 +137,6 @@ class Simulation {
             tempFinalMedium[i] = this.medium.returnBufferView[i] + this.medium.returnBufferView[i];
         }*/
 
-        console.log(this.medium.returnBufferView());
-
       //  this.medium.moveBits();
 
         for (let i = 0; i < this.stations.length; i++){
@@ -164,7 +160,6 @@ function runSimulation(mediumSize) {
 //ADD EVENT LISTENERS
 function addEventListeners() {
     document.getElementById("buttonStartSimulation").addEventListener("click", () => {
-        console.log("a");
         let inputText = document.getElementById("inputMediumSize").value;
         runSimulation(parseInt(document.getElementById("inputMediumSize").value));
         document.getElementById("inputMediumSize").value = "";

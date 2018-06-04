@@ -1,4 +1,4 @@
-let CANVASPADDING = 20, BUTTONHEIGHT = 30;
+let CANVASPADDING = 20;
 
 class GUIController{
     constructor(simulationTimeBetweenSlots, simulationCanvas){
@@ -81,8 +81,7 @@ class MediaSlot{
         this.canvasCTX.beginPath();
         this.canvasCTX.rect(this.position.x, this.position.y, this.size.width, this.size.height);
         
-        console.log(this.value);
-        this.canvasCTX.strokeStyle = "black";
+        this.canvasCTX.strokeStyle = "#888888";
         if(this.value == 0){
             this.canvasCTX.fillStyle = "white";
         }else if(this.value == 1){
@@ -100,24 +99,32 @@ class MediaSlot{
 }
 
 class ComputerSlot{
-    constructor(canvasCTX, worker, stationPosition, position, size, machineState){
+    constructor(canvasCTX, worker, stationPosition, position, size, machineState) {
         this.canvasCTX = canvasCTX;
         this.worker = worker;
         this.stationPosition = stationPosition;
         this.position = position;
         this.size = size;
         this.machineState = machineState;
-        this.button = new ComputerSlotButton(canvasCTX, worker, {x: position.x ,y: position.y + (stationPosition % 2 == 0 ? size.height : -BUTTONHEIGHT )}, {width: size.width, height: BUTTONHEIGHT});
-    }
+        this.button = new ComputerSlotButton(canvasCTX, worker, { x: position.x, y: position.y + (stationPosition % 2 == 0 ? size.height : -this.size.height / 3) }, { width: size.width, height: this.size.height / 3 });
 
+        this.computerImage = new Image();
+        //computerImage = computerImage.onload;
+        this.computerImage.src = "http://moziru.com/images/computer-clipart-vector-art-3.png";
+    }
     draw(){
         this.button.draw();
 
+        this.canvasCTX.drawImage(this.computerImage, this.position.x, this.position.y, this.size.width, this.size.height);
+
+        this.canvasCTX.fillStyle = "black";
+        this.canvasCTX.font = "20px Arial";
+        this.canvasCTX.textAlign = "center";
+        this.canvasCTX.fillText("machine state: " + this.machineState, this.position.x + this.size.width/2, this.position.y - this.size.height/2);
+
         this.canvasCTX.beginPath();
         this.canvasCTX.rect(this.position.x, this.position.y, this.size.width, this.size.height);
-        
-        this.canvasCTX.fillStyle = 'grey';
-
+        this.canvasCTX.lineWidth=1;
         if(this.machineState == "idle"){
             this.canvasCTX.strokeStyle = "brown";
         }else if(this.machineState == "sending"){
@@ -126,18 +133,6 @@ class ComputerSlot{
             this.canvasCTX.strokeStyle = "yellow";
         }
 
-        /*if(this.value == 0){
-            ctx.fillStyle = "white";
-        }else if(this.value == 1){
-            ctx.fillStyle = "green";
-        }else if(this.value > 1 && this.value <= 5){
-            ctx.fillStyle = "yellow";
-        }else if(this.value > 5){
-            ctx.fillStyle = "red";
-        }*/
-        
-
-        this.canvasCTX.fill();
         this.canvasCTX.stroke();
     }
 
@@ -168,7 +163,6 @@ class ComputerSlotButton{
             this.canvasCTX.fillStyle = 'black';  
 
         this.canvasCTX.fill();
-        this.canvasCTX.stroke();
     }
 
     clicked(){
