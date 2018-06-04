@@ -1,90 +1,212 @@
 let station;
 
-class MediaConnection{
-    constructor(mediaArrayBuffer, mediaPosition, station) {
-        this.mediaArrayBuffer = mediaArrayBuffer;
-        this.mediaPosition = mediaPosition;
+class MediumConnection{
+    constructor(mediumArrayBuffer, mediumPosition, station) {
+
+        this.mediumArrayBuffer = mediumArrayBuffer;
+
+        this.stationMediumBuffer = new SharedArrayBuffer(this.mediumSize);
+
+        this.mediumSize = this.returnBufferView('medium').length;
+
+        this.mediumPosition = mediumPosition;
         this.station = station;
 
-        console.log("(( NEW CONNECTION IN "+this.mediaPosition+ " ))");
+        console.log("(( NEW CONNECTION IN "+this.mediumPosition+ " ))");
     }
 
-    isMediaIdle() {
-        let idleCont = 0;
-        for(let i = 0; i < this.mediaArrayBuffer.length; i++){
-            idleCont + this.mediaArrayBuffer[i];
+    isMediumIdle() {
+        return this.returnBufferView('medium')[this.mediumPosition] == 0;
+    }
+
+    returnBufferView(bufferType){
+        switch(bufferType){
+            case "medium":
+                return new Int8Array(this.mediumArrayBuffer)
+            break;
+            case "station":
+                return new Int8Array(this.mediumPosition)
+            break;
         }
-        if(idleCont == 0)
-            return true;
         
-        return false;
-        //this.station.requests.push(new Request());
-        /*console.log(this.media);
-        for (let i = 0; i < this.media.dataArray.bits.length; i++)
-            if (this.media.dataArray.bits[i])
-                return false;
-
-        return true;*/
+        return "error"
     }
 
-    returnMediaPositionOfStation(stationMAC) {
-        /*for (let i = 0; i < this.media.connections.length; i++) {
-            if (this.media.connections[i] !== undefined)
-                if (this.media.connections[i].station.macAddress === stationMAC)
-                    return this.media.connections[i].mediaPosition;
-        }*/
-    }
 
-    injectFrame(frameValue) {
+    moveBits() {
+        let stationMediumBuffer = this.returnBufferView('station');
+
+        stationMediumBuffer[this.station.stationPosition + this.station.signalDistanceFromStation] = stationMediumBuffer[this.station.stationPosition];
+        stationMediumBuffer[this.station.stationPosition - this.station.signalDistanceFromStation] = stationMediumBuffer[this.station.stationPosition];
+
+
+        if(this.station.signalDistanceFromStation != 0){
+            this.returnBufferView('station')[this.station.stationPosition + this.station.signalDistanceFromStation] += stationMediumBuffer[this.station.stationPosition + this.station.signalDistanceFromStation];
+            this.returnBufferView('station')[this.station.stationPosition - this.station.signalDistanceFromStation] += stationMediumBuffer[this.station.stationPosition - this.station.signalDistanceFromStation];
+        }else{
+            this.returnBufferView('station')[this.station.stationPosition] += stationMediumBuffer[this.station.stationPosition];
+        }
         
-        this.mediaArrayBuffer[1] = 1;
-        console.log(this.mediaArrayBuffer);
-       /* if (this.isMediaIdle)
-            this.media.injectBit(direction, bitValue, this.mediaPosition);*/
+
+        this.station.signalDistanceFromStation++;
+
+
+        if( this.station.signalDistanceFromStation > 8 - this.station.stationPosition){
+            if(!this.station.isSendingJam){
+                console.log("(( MACHINE " + this.station.macAddress + " WAS SUCESSFULL IN SENDING THE SIGNAL))");
+                this.station.wantsToSend = false;
+            }else{
+                console.log("(( MACHINE " + this.station.macAddress + " DONE SENDING JAM SIGNAL))");
+                this.station.isSendingJam = false;
+            }
+
+            this.station.isSendingSignal = false;
+            this.station.signalDistanceFromStation = 0;
+            this.cleanStationMedium();
+        }
+        console.log(this.returnBufferView('station'));
     }
 
-    clearMediaArray(){
-        for(let i = 0; i < this.mediaArrayBuffer.length; i++){
-            this.mediaArrayBuffer[i] = 0;
+    spreadSignal(amp){
+        let doneSpreads = 0;
+
+        if((this.station.stationPosition - this.station.deltaFromOrigin) < 0){
+            if((this.station.stationPosition + (this.station.stationPosition - this.station.deltaFromOrigin)) >= 0)
+                this.returnBufferView('medium')[this.station.stationPosition + (this.station.stationPosition - this.station.deltaFromOrigin)] -= amp;
+            else
+                doneSpreads++;
+            
+         } else{
+            this.returnBufferView('medium')[this.station.stationPosition - this.station.deltaFromOrigin] += amp;
+         }
+
+        if((this.station.stationPosition + this.station.deltaFromOrigin) >= this.mediumSize){
+            if((this.station.stationPosition + ((this.station.stationPosition + this.station.deltaFromOrigin) - this.mediumSize)) < this.mediumSize)
+                this.returnBufferView('medium')[this.station.stationPosition + ((this.station.stationPosition + this.station.deltaFromOrigin) - this.mediumSize)] -= amp;
+            else
+                doneSpreads++;
+        }else{
+            this.returnBufferView('medium')[this.station.stationPosition + this.station.deltaFromOrigin] += amp;
+        }
+
+        if(doneSpreads == 2)
+            this.station.machineState = 'doneSending';
+    }
+
+    senseMedium(){
+        if( this.returnBufferView('medium')[this.station.stationPosition] > this.returnBufferView('medium').length) // DETECTOU SINAL JAM
+         {
+             console.log("detected jam "+ this.mediumPosition)
+             return "detectedJam";
+         }   
+
+        if(this.returnBufferView('medium')[this.station.stationPosition] > 1 && this.returnBufferView('medium')[this.station.stationPosition] < this.returnBufferView('medium').length) // COLISÃO !
+        {
+                this.station.currentSendingSignal = 'jam';
+                this.station.machineState = "startedSending";
+
+            return "sendingJam"
+        }
+
+        return "noError"
+    }
+
+    injectSignal(type) {
+        switch(type){
+            case "normal":
+                this.returnBufferView('medium')[this.station.stationPosition] += 1;
+            break;
+            case "jam":
+                this.returnBufferView('medium')[this.station.stationPosition] += this.returnBufferView('medium').length + 1;
+            break;
         }
     }
+
 }
 
 class Station {
-    constructor(mediaArrayBuffer, macAddress, stationPosition) {
-        this.requestID = 0;
-        this.requests = [];
+    constructor(machineState, mediumArrayBuffer, macAddress, stationPosition) {
+        this.machineState = machineState;
 
         this.macAddress = macAddress;
         this.stationPosition = stationPosition;
-        this.connection = new MediaConnection(mediaArrayBuffer, stationPosition, this);
+
+        this.mediumConnection = new MediumConnection(mediumArrayBuffer, stationPosition, this);
         console.log("(( CREATED A NEW MACHINE " + macAddress + " ))");
 
-        this.timer;
+        this.timeSlotsSinceStart = 0;
 
-        setTimeout(this.sendFrameToMedia(), 1000);
+        this.deltaFromOrigin = 0;
+
+        this.currentSendingSignal = "normal";
     }
 
-    assembleFrame(frameLengthBits) {
-        let frame = new Frame(5);
+    passTimeSlot(){
+        this.timeSlotsSinceStart++;
 
-        return frame;
-    }
+        console.log(this.machineState);
 
-    sendFrameToMedia(frameValue) {
-        if(this.connection.isMediaIdle){
-            this.connection.injectFrame(frameValue);
-            this.timer = new Timer();
-
-            this.timer.runTimer(this.stopFrameSending, this);
+        if(this.machineState != "waiting" && this.machineState != "startedWaiting" && this.currentSendingSignal === 'normal'){
+            switch(this.mediumConnection.senseMedium()){
+                case 'detectedJam':
+                    this.machineState = 'startedWaiting';
+                break;
+            }
         }
-            
-    }
 
-    stopFrameSending(){
-        this.connection.clearMediaArray();
-        console.log("stopped sending");
-    }
+        switch(this.machineState){
+            case "idle":
+                console.log("machine is idling");
+            break;
+
+            case "attemptSending":
+                console.log("machine will attempt to send");
+
+                this.machineState = (this.mediumConnection.isMediumIdle() ? "startedSending" : "attemptSending")
+            break;
+
+            case "startedSending":
+                console.log("machine started sending");
+                this.mediumConnection.injectSignal(this.currentSendingSignal);
+
+                this.machineState = 'sending';
+
+                this.deltaFromOrigin = 0;
+
+            break;
+            case "sending":
+               /* if(this.deltaFromOrigin + 1 > this.mediumConnection.stationMediumBuffer.length - this.stationPosition){
+                    this.machineState = "doneSending";
+                }else{*/
+                    this.deltaFromOrigin++;
+                    this.mediumConnection.spreadSignal((this.currentSendingSignal === 'normal' ? 1 : (this.currentSendingSignal === 'jam' ? this.mediumConnection.returnBufferView('medium').length + 1 : undefined)));
+                //}
+            break;
+            case "doneSending":
+                this.machineState = 'idle';
+            break;
+
+            case "startedWaiting":
+                    this.mediumConnection.spreadSignal((this.currentSendingSignal === 'normal' ? 1 : (this.currentSendingSignal === 'jam' ? this.mediumConnection.returnBufferView('medium').length + 1 : undefined)));
+                    console.log("started waiting" + this.mediumConnection.mediumPosition);
+                    this.machineState = "waiting";
+            break;
+            case "waiting":
+                    this.mediumConnection.spreadSignal((this.currentSendingSignal === 'normal' ? 1 : (this.currentSendingSignal === 'jam' ? this.mediumConnection.returnBufferView('medium').length + 1 : undefined)));
+
+            break;
+            case "doneWaiting":
+                    this.mediumConnection.spreadSignal((this.currentSendingSignal === 'normal' ? 1 : (this.currentSendingSignal === 'jam' ? this.mediumConnection.returnBufferView('medium').length + 1 : undefined)));
+
+            break;
+
+            default:
+
+            break;
+        }
+
+        sendMessage({type: "machineState", information: {machineState: this.machineState, stationPosition: this.stationPosition}});
+    } 
 }
 
 class Frame {
@@ -120,7 +242,7 @@ class Request{
 }
 
 class Timer{
-    constructor(){
+    /*constructor(){
         this.isRunning = true;
     }
 
@@ -128,18 +250,30 @@ class Timer{
         console.log(resolve);
         this.isRunning = false;
         setTimeout(resolve.bind(self), 1000);
-    }
+    }*/
 }
 
 
 self.onmessage = function (msg) {
     switch (msg.data.type) {
         case 'threadInitialization':
-                console.log(new Int8Array(msg.data.information.mediaArray));
-
-                station = new Station(new Int8Array(msg.data.information.mediaArray),msg.data.information.macAddress, msg.data.information.stationPosition);
+                console.log(new Int8Array(msg.data.information.mediumArray));
+                station = new Station(msg.data.information.machineState, msg.data.information.mediumArray, msg.data.information.macAddress, parseInt(msg.data.information.stationPosition));
+            break;
+        case 'passTimeSlot':
+                station.passTimeSlot();
+            break;
+        case 'injectSignal':
+                station.currentSendingSignal = 'normal';
+                station.machineState = "attemptSending";
+                //station.wantsToSend = true;
             break;
         default:
             throw 'no aTopic on incoming message to ChromeWorker';
     }
+}
+
+function sendMessage(object){
+    console.log("seneettttttttttttttttttttttttttttttt")
+    self.postMessage({type: object.type, information: object.information});
 }

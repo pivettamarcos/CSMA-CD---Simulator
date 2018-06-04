@@ -4,40 +4,88 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/92/three.min.js"></script>
     <script src="simulator.js"></script>
+    <script src="gui.js"></script>
     <script src="threejsController.js"></script>
 
+    <meta charset="utf-8"> 
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/js/materialize.min.js"></script>
+    <link href='http://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
+
+    <style>
+        body {
+          font-family: 'Roboto', sans-serif;
+          font-size: 10px;
+        }
+    </style>
 
     <title>CSMA/CD Simulator</title>
 </head>
 <body>
 
-    <h1>Simulador CSMA/CD</h1>
+
+    <canvas id="simulationCanvas" width='800' height= '600' style="background-color: #cccccc">
+
+    </canvas>
+
+    <h5>Simulador CSMA/CD</h5>
+
+    <div class="row">
+        <div class="col s3">
+            <div class="row">
+                    <div class="input-field col s8">
+
+                        <input id="inputMediumSize" placeholder="Tamanho do meio" type="text" >
+                    </div>
+                    <div class="input-field col s4">
+                        <a class="waves-effect waves-light btn" id="buttonStartSimulation">Criar meio</a>
+                    </div>   
+            </div>
+            <div class="row">
+                    <div class="input-field col s8">
+
+                        <input id="inputStationPosition" placeholder="Posição da estação no meio" type="text">
+                    </div>
+                    <div class="input-field col s4">
+                        <a class="waves-effect waves-light btn-small" id="buttonCreateStation">Adicionar nova estação</a>
+                    </div>   
+            </div>
+        </div>
+
+        <div class="col s3">
+                <div class="input-field col s8">
+
+                        <input id="inputChangeSecsBetweenTimeSlots" placeholder="Tempo em ms entre time-slots" type="number">
+                    </div>
+                    <div class="input-field col s4">
+                        <a class="waves-effect waves-light btn-small" id="buttonChangeSecsBetweenTimeSlots">Mudar</a>
+                    </div>   
+
+        </div>
+    </div>
 
     <div>
-        <input type="text" placeholder="Tempo entre time-slots" id="inputChangeSecsBetweenTimeSlots"> </input>
-        <button id="buttonChangeSecsBetweenTimeSlots"> Mudar tempo entre time-slots </button>
+        <button id="buttonStartSimulation"> Começar simulação do CSMA/CD </button>
     </div>
 
     <div>
         <button id="buttonAssembleFrame"> Criar frame </button>
     </div>
-    <div>
-        <input type="text" placeholder="Posição da Estação no meio" id="inputStationPosition"> </input>
 
-        <button id="buttonCreateStation"> Adicionar nova estaçãoo </button>
-    </div>
 
     <div>
         <input type="text" placeholder="Estação emissora" id="inputStationEmitter"> </input>
-        <input type="text" placeholder="Estação receptora" id="inputStationReceiver"> </input>
 
 
-        <button id="buttonInjectBit"> Injetar bit </button>
+        <button id="buttonInjectSignal"> Injetar Sinal </button>
     </div>
 
     <div>
-        <button id="buttonIsMediaIdle"> Verificar liberdade do meio </button>
+        <button id="buttonIsMediumIdle"> Verificar liberdade do meio </button>
     </div>
+
+    <script type="text/javascript" src="js/materialize.min.js"></script>
 
 </body>
 </html>
