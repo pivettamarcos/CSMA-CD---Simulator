@@ -162,6 +162,12 @@ class ComputerSlot{
         if(machineState == "doneSending")
             this.button.active = true;
 
+        if (machineState == "startedWaiting")
+            this.button.active = false;
+
+        if (machineState == "doneWaiting")
+            this.button.active = true;
+
         this.waitingTime = waitingTime;
         this.machineState = machineState;
     }

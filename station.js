@@ -104,7 +104,8 @@ class MediumConnection{
                 this.returnBufferView('medium')[this.station.stationPosition + this.station.rightSpread] += amp;
                 this.station.rightSpread++;
             }
-        }else if (doneSpreads == 2){
+        }
+        if (doneSpreads == 2) {
             if(!this.station.jammed)
                 this.station.machineState = 'doneSending';
         }
@@ -115,6 +116,7 @@ class MediumConnection{
         if( this.returnBufferView('medium')[this.station.stationPosition] > this.returnBufferView('medium').length) // DETECTOU SINAL JAM
          {
             //Algoritmo backoff
+
             this.station.noCollision++;
             let m = Math.floor((Math.random() * 10) + this.station.noCollision);
             this.station.waitingTime = Math.floor((Math.random() * (Math.pow(2, m) - 1)));
@@ -135,13 +137,13 @@ class MediumConnection{
                 let m = Math.floor((Math.random() * 10) + this.station.noCollision);
                 this.station.waitingTime = Math.floor((Math.random() * (Math.pow(2, m))));
 
+                let worker = new Worker('jam.js');
+                worker.postMessage({ type: "threadInitialization", information: { origin: this.station.stationPosition, bufferMedium: this.mediumArrayBuffer } });
 
-               // let worker = new Worker('jam.js');
-               // worker.postMessage({ type: "threadInitialization", information: { origin: this.station.stationPosition, bufferMedium: this.mediumArrayBuffer } });
+                this.jams.push(worker);
 
-               // this.jams.push(worker);
-                
                 this.station.sendJam = true;
+                
                 this.station.jammed = true;
 
             return "detectedCollision"
@@ -185,6 +187,8 @@ class Station {
 
         this.waitingTime = 0;
 
+        this.wantsToSend = false;
+
         this.currentSendingSignal = "normal";
     }
 
@@ -197,7 +201,7 @@ class Station {
 
         this.timeSlotsSinceStart++;
 
-        if(this.machineState != "waiting" && this.machineState != "startedWaiting" && !this.jammed && this.currentSendingSignal === 'normal'){
+        if (this.machineState != "waiting" && this.machineState != "startedWaiting" && !this.jammed && this.currentSendingSignal === 'normal' && this.machineState != "idle") {
             switch(this.mediumConnection.senseMedium()){
                 case 'detectedJam':
                     this.machineState = 'startedWaiting';
@@ -213,6 +217,7 @@ class Station {
             break;
 
             case "attemptSending":
+                console.log("tentou" + this.stationPosition)
                 let returnedState = (this.mediumConnection.isMediumIdle() ? "startedSending" : "attemptSending")
 
                 if (returnedState === "attemptSending" && this.jammed) {
@@ -225,13 +230,14 @@ class Station {
 
                         this.machineState = 'startedWaiting';
                     }
-                } else {
+                }  else if (returnedState !== "attemptSending") {
                     this.jammed = false;
                     this.machineState = 'startedSending';
                 }
             break;
 
             case "startedSending":
+                console.log("injectou" + this.stationPosition);
                 this.mediumConnection.injectSignal(this.currentSendingSignal);
 
                 this.machineState = 'sending';
@@ -256,7 +262,6 @@ class Station {
 
             case "startedWaiting":
                     this.mediumConnection.spreadSignal(1);
-                    console.log("started waiting" + this.mediumConnection.mediumPosition);
                     this.machineState = "waiting";
             break;
             case "waiting":
@@ -270,7 +275,6 @@ class Station {
                 this.mediumConnection.spreadSignal(1);
             
                  this.waitingTime = 0;
-                  console.log(this.jammed);
                   if (this.jammed)
                       this.machineState = 'attemptSending'
                   else
@@ -341,6 +345,7 @@ self.onmessage = function (msg) {
                 station.passTimeSlot();
             break;
         case 'injectSignal':
+            console.log("inject signal in" + station.stationPosition);
                 station.currentSendingSignal = 'normal';
                 station.machineState = "attemptSending";
                 //station.wantsToSend = true;

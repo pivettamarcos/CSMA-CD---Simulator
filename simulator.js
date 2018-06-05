@@ -144,7 +144,6 @@ class Simulation {
                 this.stations[i].postMessage({type: "passTimeSlot", information: {}});
             }
         }
-        console.log("df"+this.medium.returnBufferView());
     };
 
     getMachineWithMAC(MAC) {

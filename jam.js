@@ -17,7 +17,6 @@ class Jam {
 
         this.spreadSignal(30);
 
-        console.log("ola"+this.returnMediumBufferView());
     }
 
     spreadSignal(amp) {
