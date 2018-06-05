@@ -1,3 +1,5 @@
+importScripts("subworkers.js");
+
 let station;
 
 class MediumConnection{
@@ -10,6 +12,8 @@ class MediumConnection{
 
         this.mediumPosition = mediumPosition;
         this.station = station;
+
+        this.jams = [];
 
         console.log("(( NEW CONNECTION IN "+this.mediumPosition+ " ))");
     }
@@ -101,13 +105,14 @@ class MediumConnection{
             this.station.rightSpread++;
         }
 
-        if(doneSpreads == 2)
-            this.station.machineState = 'doneSending';
+        if (doneSpreads == 2)
+            if(!this.station.jammed)
+                this.station.machineState = 'doneSending';
 
     }
 
     senseMedium(){
-        if( this.returnBufferView('medium')[this.station.stationPosition] > this.returnBufferView('medium').length) // DETECTOU SINAL JAM
+        /*if( this.returnBufferView('medium')[this.station.stationPosition] > this.returnBufferView('medium').length) // DETECTOU SINAL JAM
          {
             this.station.jammed = true;
 
@@ -117,16 +122,28 @@ class MediumConnection{
             this.station.waitingTime = Math.floor((Math.random() * (Math.pow(2, m) - 1)));
 
              return "detectedJam";
-         }   
+         }   */
 
         if(this.returnBufferView('medium')[this.station.stationPosition] > 1 && this.returnBufferView('medium')[this.station.stationPosition] < this.returnBufferView('medium').length) // COLISÃO !
         {
-                this.station.currentSendingSignal = 'jam';
-                this.station.machineState = "startedSending";
+               // this.station.currentSendingSignal = 'jam';
+               // this.station.machineState = "startedSending";
 
+                //this.station.jammed = true;
+                this.station.noCollision++;
+                let m = Math.floor((Math.random() * 10) + this.station.noCollision);
+                this.station.waitingTime = Math.floor((Math.random() * (Math.pow(2, m))));
+
+
+                let worker = new Worker('jam.js');
+                worker.postMessage({ type: "threadInitialization", information: { origin: this.station.stationPosition, bufferMedium: this.mediumArrayBuffer } });
+
+                this.jams.push(worker);
+                
+                this.station.sendJam = true;
                 this.station.jammed = true;
 
-            return "sendingJam"
+            return "detectedCollision"
         }
 
         return "noError"
@@ -157,25 +174,36 @@ class Station {
 
         this.timeSlotsSinceStart = 0;
 
-        let leftSpread = 0;
-        let rightSpread = 0;
+        this.leftSpread = 0;
+        this.rightSpread = 0;
 
-        let doneReachEnd = [false, false];
+        this.doneReachEnd = [false, false];
 
-        let waitingTime = 0;
-        let noCollision = 0;
+        this.waitingTime = 0;
+        this.noCollision = 0;
+
+        this.waitingTime = 0;
 
         this.currentSendingSignal = "normal";
     }
 
-    passTimeSlot(){
+    passTimeSlot() {
+
+        for (let i = 0; i < this.mediumConnection.jams.length; i++) {
+            if(this.mediumConnection.jams[i])
+                this.mediumConnection.jams[i].postMessage({ type: "passTimeSlot", information: {} });
+        }
+
         this.timeSlotsSinceStart++;
 
-        if(this.machineState != "waiting" && this.machineState != "startedWaiting" && this.currentSendingSignal === 'normal'){
+        if(this.machineState != "waiting" && this.machineState != "startedWaiting" && !this.jammed && this.currentSendingSignal === 'normal'){
             switch(this.mediumConnection.senseMedium()){
                 case 'detectedJam':
                     this.machineState = 'startedWaiting';
-                break;
+                    break;
+                case 'detectedCollision':
+                    this.machineState = 'startedWaiting';
+                    break;
             }
         }
 
@@ -193,10 +221,12 @@ class Station {
                         this.noCollision++;
                         let m = Math.floor((Math.random() * 10) + this.noCollision);
                         this.waitingTime = Math.floor((Math.random() * (Math.pow(2, m) - 1)));
+
+                        this.machineState = 'startedWaiting';
                     }
                 } else {
                     this.jammed = false;
-                    this.machineState = returnedState;
+                    this.machineState = 'startedSending';
                 }
             break;
 
@@ -232,15 +262,19 @@ class Station {
                     this.mediumConnection.spreadSignal((this.currentSendingSignal === 'normal' ? 1 : (this.currentSendingSignal === 'jam' ? this.mediumConnection.returnBufferView('medium').length + 1 : undefined)));
 
                     this.waitingTime--;
+                    console.log(this.waitingTime);
                     if (this.waitingTime == 0)
                         this.machineState = "doneWaiting";
             break;
             case "doneWaiting":
                   this.mediumConnection.spreadSignal((this.currentSendingSignal === 'normal' ? 1 : (this.currentSendingSignal === 'jam' ? this.mediumConnection.returnBufferView('medium').length + 1 : undefined)));
-                  this.machineState = 'idle';
+            
 
-                  if (this.jammed = true)
+                  console.log(this.jammed);
+                  if (this.jammed)
                       this.machineState = 'attemptSending'
+                  else
+                      this.machineState = 'idle';
 
             break;
 

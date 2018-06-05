@@ -144,6 +144,8 @@ class Simulation {
                 this.stations[i].postMessage({type: "passTimeSlot", information: {}});
             }
         }
+
+        console.log("ola"+this.medium.returnBufferView());
     };
 
     getMachineWithMAC(MAC) {

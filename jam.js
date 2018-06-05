@@ -1,26 +1,83 @@
+
+let jam;
+
 class Jam {
-    constructor() {
+    constructor(origin, bufferMedium) {
+        this.origin = origin;
+        this.bufferMedium = bufferMedium;
+
+        this.leftSpread = 1;
+        this.rightSpread = 1;
+
+        this.doneReachEnd = [false, false];
+    }
+
+    passTimeSlot() {
+        this.timeSlotsSinceStart++;
+
+        this.spreadSignal(30);
+    }
+
+    spreadSignal(amp) {
+        let doneSpreads = 0;
+
+
+        if ((this.origin - this.leftSpread) < 0) {
+            this.doneReachEnd[0] = true;
+            if (this.doneReachEnd[0] && this.doneReachEnd[1]) {
+                if ((this.origin + (this.origin - this.leftSpread)) >= 0) {
+
+                    this.returnMediumBufferView()[this.origin + (this.origin - this.leftSpread)] -= amp;
+
+                    this.leftSpread++;
+                } else {
+                    doneSpreads++;
+                }
+            }
+        } else {
+            this.returnMediumBufferView()[this.origin - this.leftSpread] += amp;
+            this.leftSpread++;
+        }
+
+        if ((this.origin + this.rightSpread) >= this.mediumSize) {
+            this.doneReachEnd[1] = true;
+            if (this.doneReachEnd[0] && this.doneReachEnd[1]) {
+                if ((this.origin + ((this.origin + this.rightSpread) - this.mediumSize)) < this.mediumSize) {
+                    this.returnMediumBufferView()[this.origin + ((this.origin + this.rightSpread) - this.mediumSize)] -= amp;
+                    this.rightSpread++;
+                } else {
+                    doneSpreads++;
+                }
+            }
+        } else {
+            this.returnMediumBufferView()[this.origin + this.rightSpread] += amp;
+            this.rightSpread++;
+        }
+
+        if (doneSpreads == 2)
+            destroySelf();
 
     }
+
+    returnMediumBufferView(bufferType) {
+        return new Int8Array(this.bufferMedium)
+    }
 }
+
+
+
+function destroySelf() {
+    self.terminate();
+}
+
 self.onmessage = function (msg) {
     switch (msg.data.type) {
         case 'threadInitialization':
-                station = new Station(msg.data.information.machineState, msg.data.information.mediumArray, msg.data.information.macAddress, parseInt(msg.data.information.stationPosition));
+                jam = new Jam(msg.data.information.origin, msg.data.information.bufferMedium);
+                jam.returnMediumBufferView()[msg.data.information.origin] += 1;
             break;
         case 'passTimeSlot':
-                station.passTimeSlot();
+                jam.passTimeSlot();
             break;
-        case 'injectSignal':
-                station.currentSendingSignal = 'normal';
-                station.machineState = "attemptSending";
-                //station.wantsToSend = true;
-            break;
-        default:
-            throw 'no aTopic on incoming message to ChromeWorker';
     }
-}
-
-function sendMessage(object){
-    self.postMessage({type: object.type, information: object.information});
 }
