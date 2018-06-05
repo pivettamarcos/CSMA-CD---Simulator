@@ -72,57 +72,58 @@ class MediumConnection{
     spreadSignal(amp){
         let doneSpreads = 0;
         
+        if(doneSpreads < 2){
+            if ((this.station.stationPosition - this.station.leftSpread) < 0) {
+                this.station.doneReachEnd[0] = true;
+                if (this.station.doneReachEnd[0] && this.station.doneReachEnd[1]) {
+                    if ((this.station.stationPosition + (this.station.stationPosition - this.station.leftSpread)) >= 0) {
+                        
+                        this.returnBufferView('medium')[this.station.stationPosition + (this.station.stationPosition - this.station.leftSpread)] -= amp;
 
-        if ((this.station.stationPosition - this.station.leftSpread) < 0) {
-            this.station.doneReachEnd[0] = true;
-            if (this.station.doneReachEnd[0] && this.station.doneReachEnd[1]) {
-                if ((this.station.stationPosition + (this.station.stationPosition - this.station.leftSpread)) >= 0) {
-                    
-                    this.returnBufferView('medium')[this.station.stationPosition + (this.station.stationPosition - this.station.leftSpread)] -= amp;
-
-                    this.station.leftSpread++;
-                } else {
-                    doneSpreads++;
+                        this.station.leftSpread++;
+                    } else {
+                        doneSpreads++;
+                    }
                 }
+            } else {
+                this.returnBufferView('medium')[this.station.stationPosition - this.station.leftSpread] += amp;
+                this.station.leftSpread++;
             }
-        } else {
-            this.returnBufferView('medium')[this.station.stationPosition - this.station.leftSpread] += amp;
-            this.station.leftSpread++;
-        }
 
-        if ((this.station.stationPosition + this.station.rightSpread) >= this.mediumSize) {
-            this.station.doneReachEnd[1] = true;
-            if (this.station.doneReachEnd[0] && this.station.doneReachEnd[1]) {
-                if ((this.station.stationPosition + ((this.station.stationPosition + this.station.rightSpread) - this.mediumSize)) < this.mediumSize) {
-                    this.returnBufferView('medium')[this.station.stationPosition + ((this.station.stationPosition + this.station.rightSpread) - this.mediumSize)] -= amp;
-                    this.station.rightSpread++;
-                } else {
-                    doneSpreads++;
+            if ((this.station.stationPosition + this.station.rightSpread) >= this.mediumSize) {
+                this.station.doneReachEnd[1] = true;
+                if (this.station.doneReachEnd[0] && this.station.doneReachEnd[1]) {
+                    if ((this.station.stationPosition + ((this.station.stationPosition + this.station.rightSpread) - this.mediumSize)) < this.mediumSize) {
+                        this.returnBufferView('medium')[this.station.stationPosition + ((this.station.stationPosition + this.station.rightSpread) - this.mediumSize)] -= amp;
+                        this.station.rightSpread++;
+                    } else {
+                        doneSpreads++;
+                    }
                 }
+            } else {
+                this.returnBufferView('medium')[this.station.stationPosition + this.station.rightSpread] += amp;
+                this.station.rightSpread++;
             }
-        } else {
-            this.returnBufferView('medium')[this.station.stationPosition + this.station.rightSpread] += amp;
-            this.station.rightSpread++;
-        }
-
-        if (doneSpreads == 2)
+        }else if (doneSpreads == 2){
             if(!this.station.jammed)
                 this.station.machineState = 'doneSending';
+        }
 
     }
 
     senseMedium(){
-        /*if( this.returnBufferView('medium')[this.station.stationPosition] > this.returnBufferView('medium').length) // DETECTOU SINAL JAM
+        if( this.returnBufferView('medium')[this.station.stationPosition] > this.returnBufferView('medium').length) // DETECTOU SINAL JAM
          {
-            this.station.jammed = true;
-
             //Algoritmo backoff
             this.station.noCollision++;
             let m = Math.floor((Math.random() * 10) + this.station.noCollision);
             this.station.waitingTime = Math.floor((Math.random() * (Math.pow(2, m) - 1)));
 
+            this.station.sendJam = true;
+            this.station.jammed = true;
+
              return "detectedJam";
-         }   */
+         }   
 
         if(this.returnBufferView('medium')[this.station.stationPosition] > 1 && this.returnBufferView('medium')[this.station.stationPosition] < this.returnBufferView('medium').length) // COLISÃO !
         {
@@ -135,10 +136,10 @@ class MediumConnection{
                 this.station.waitingTime = Math.floor((Math.random() * (Math.pow(2, m))));
 
 
-                let worker = new Worker('jam.js');
-                worker.postMessage({ type: "threadInitialization", information: { origin: this.station.stationPosition, bufferMedium: this.mediumArrayBuffer } });
+               // let worker = new Worker('jam.js');
+               // worker.postMessage({ type: "threadInitialization", information: { origin: this.station.stationPosition, bufferMedium: this.mediumArrayBuffer } });
 
-                this.jams.push(worker);
+               // this.jams.push(worker);
                 
                 this.station.sendJam = true;
                 this.station.jammed = true;
@@ -245,7 +246,7 @@ class Station {
                     this.machineState = "doneSending";
                 }else{*/
                     
-                    this.mediumConnection.spreadSignal((this.currentSendingSignal === 'normal' ? 1 : (this.currentSendingSignal === 'jam' ? this.mediumConnection.returnBufferView('medium').length + 1 : undefined)));
+                    this.mediumConnection.spreadSignal(1);
                 //}
             break;
             case "doneSending":
@@ -254,22 +255,21 @@ class Station {
 
 
             case "startedWaiting":
-                    this.mediumConnection.spreadSignal((this.currentSendingSignal === 'normal' ? 1 : (this.currentSendingSignal === 'jam' ? this.mediumConnection.returnBufferView('medium').length + 1 : undefined)));
+                    this.mediumConnection.spreadSignal(1);
                     console.log("started waiting" + this.mediumConnection.mediumPosition);
                     this.machineState = "waiting";
             break;
             case "waiting":
-                    this.mediumConnection.spreadSignal((this.currentSendingSignal === 'normal' ? 1 : (this.currentSendingSignal === 'jam' ? this.mediumConnection.returnBufferView('medium').length + 1 : undefined)));
+                    this.mediumConnection.spreadSignal(1);
 
                     this.waitingTime--;
-                    console.log(this.waitingTime);
-                    if (this.waitingTime == 0)
+                    if (this.waitingTime <= 0)
                         this.machineState = "doneWaiting";
             break;
             case "doneWaiting":
-                  this.mediumConnection.spreadSignal((this.currentSendingSignal === 'normal' ? 1 : (this.currentSendingSignal === 'jam' ? this.mediumConnection.returnBufferView('medium').length + 1 : undefined)));
+                this.mediumConnection.spreadSignal(1);
             
-
+                 this.waitingTime = 0;
                   console.log(this.jammed);
                   if (this.jammed)
                       this.machineState = 'attemptSending'
@@ -283,7 +283,7 @@ class Station {
             break;
         }
 
-        sendMessage({type: "machineState", information: {machineState: this.machineState, stationPosition: this.stationPosition}});
+        sendMessage({type: "machineState", information: {machineState: this.machineState, stationPosition: this.stationPosition, waitingTime: this.waitingTime}});
     } 
 }
 

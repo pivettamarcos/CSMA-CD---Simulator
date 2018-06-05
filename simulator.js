@@ -98,7 +98,7 @@ class Simulation {
                 worker.onmessage = (msg) => {
                     switch (msg.data.type) {
                         case 'machineState':
-                            this.GUIController.controlMachineState(msg.data.information.machineState, msg.data.information.stationPosition);
+                            this.GUIController.controlMachineState(msg.data.information.machineState, msg.data.information.stationPosition, msg.data.information.waitingTime );
                         break;
                     }
                 }
@@ -144,8 +144,7 @@ class Simulation {
                 this.stations[i].postMessage({type: "passTimeSlot", information: {}});
             }
         }
-
-        console.log("ola"+this.medium.returnBufferView());
+        console.log("df"+this.medium.returnBufferView());
     };
 
     getMachineWithMAC(MAC) {

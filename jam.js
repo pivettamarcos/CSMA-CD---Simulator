@@ -16,10 +16,13 @@ class Jam {
         this.timeSlotsSinceStart++;
 
         this.spreadSignal(30);
+
+        console.log("ola"+this.returnMediumBufferView());
     }
 
     spreadSignal(amp) {
         let doneSpreads = 0;
+        let mediumSize = this.returnMediumBufferView().length;
 
 
         if ((this.origin - this.leftSpread) < 0) {
@@ -39,11 +42,11 @@ class Jam {
             this.leftSpread++;
         }
 
-        if ((this.origin + this.rightSpread) >= this.mediumSize) {
+        if ((this.origin + this.rightSpread) >= mediumSize) {
             this.doneReachEnd[1] = true;
             if (this.doneReachEnd[0] && this.doneReachEnd[1]) {
-                if ((this.origin + ((this.origin + this.rightSpread) - this.mediumSize)) < this.mediumSize) {
-                    this.returnMediumBufferView()[this.origin + ((this.origin + this.rightSpread) - this.mediumSize)] -= amp;
+                if ((this.origin + ((this.origin + this.rightSpread) - mediumSize)) < mediumSize) {
+                    this.returnMediumBufferView()[this.origin + ((this.origin + this.rightSpread) - mediumSize)] -= amp;
                     this.rightSpread++;
                 } else {
                     doneSpreads++;
@@ -67,14 +70,14 @@ class Jam {
 
 
 function destroySelf() {
-    self.terminate();
+    self.close();
 }
 
 self.onmessage = function (msg) {
     switch (msg.data.type) {
         case 'threadInitialization':
                 jam = new Jam(msg.data.information.origin, msg.data.information.bufferMedium);
-                jam.returnMediumBufferView()[msg.data.information.origin] += 1;
+                jam.returnMediumBufferView()[msg.data.information.origin] += 30;
             break;
         case 'passTimeSlot':
                 jam.passTimeSlot();
