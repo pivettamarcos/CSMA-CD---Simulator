@@ -141,20 +141,20 @@ class ComputerSlot{
         
         this.canvasCTX.fillStyle = "grey";
         if(this.machineState == "waiting")
-            this.canvasCTX.fillText(this.waitingTime, this.position.x + this.size.width/2, (this.stationPosition % 2 == 0 ? this.position.y + 2*this.size.height : this.position.y - this.size.height/2));
+            this.canvasCTX.fillText(this.waitingTime, this.position.x + this.size.width/2, (this.stationPosition % 2 == 0 ? this.position.y + this.size.height + this.size.height/2 : this.position.y - this.size.height/2));
 
 
         this.canvasCTX.lineWidth=1;
 
         if(this.machineState == "idle"){
-            this.canvasCTX.fillStyle = "brown";
+            this.canvasCTX.fillStyle = "#5555ee";
         }else if(this.machineState == "sending"){
             this.canvasCTX.fillStyle = "green";
         }else if(this.machineState == "waiting"){
-            this.canvasCTX.fillStyle = "yellow";
+            this.canvasCTX.fillStyle = "brown";
         }
 
-        this.canvasCTX.fillText(this.machineState, this.position.x + this.size.width/2, (this.stationPosition % 2 == 0 ? (this.position.y + 2*this.size.height) +20 : (this.position.y - this.size.height/2) - 20));
+        this.canvasCTX.fillText(this.machineState, this.position.x + this.size.width/2, (this.stationPosition % 2 == 0 ? (this.position.y + this.size.height + this.size.height/2) +20 : (this.position.y - this.size.height/2) - 20));
 
     }
 
@@ -163,6 +163,9 @@ class ComputerSlot{
             this.button.active = true;
 
         if (machineState == "startedWaiting")
+            this.button.active = false;
+
+        if (machineState == "waiting")
             this.button.active = false;
 
         if (machineState == "doneWaiting")

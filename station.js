@@ -113,7 +113,7 @@ class MediumConnection{
     }
 
     senseMedium(){
-        if( this.returnBufferView('medium')[this.station.stationPosition] > this.returnBufferView('medium').length) // DETECTOU SINAL JAM
+        if( this.returnBufferView('medium')[this.station.stationPosition] > this.returnBufferView('medium').length) // DETECTOU SINAL JAM !
          {
             //Algoritmo backoff
 
@@ -127,7 +127,8 @@ class MediumConnection{
              return "detectedJam";
          }   
 
-        if(this.returnBufferView('medium')[this.station.stationPosition] > 1 && this.returnBufferView('medium')[this.station.stationPosition] < this.returnBufferView('medium').length) // COLISÃO !
+        if(this.returnBufferView('medium')[this.station.stationPosition] > 1 
+            && this.returnBufferView('medium')[this.station.stationPosition] < this.returnBufferView('medium').length) // DETECTOU COLISÃO !
         {
                // this.station.currentSendingSignal = 'jam';
                // this.station.machineState = "startedSending";
@@ -138,7 +139,8 @@ class MediumConnection{
                 this.station.waitingTime = Math.floor((Math.random() * (Math.pow(2, m))));
 
                 let worker = new Worker('jam.js');
-                worker.postMessage({ type: "threadInitialization", information: { origin: this.station.stationPosition, bufferMedium: this.mediumArrayBuffer } });
+                worker.postMessage({ type: "threadInitialization", 
+                    information: { origin: this.station.stationPosition, bufferMedium: this.mediumArrayBuffer } });
 
                 this.jams.push(worker);
 
@@ -153,14 +155,7 @@ class MediumConnection{
     }
 
     injectSignal(type) {
-        switch(type){
-            case "normal":
-                this.returnBufferView('medium')[this.station.stationPosition] += 1;
-            break;
-            case "jam":
-                this.returnBufferView('medium')[this.station.stationPosition] += this.returnBufferView('medium').length + 1;
-            break;
-        }
+        this.returnBufferView('medium')[this.station.stationPosition] += 1;
     }
 
 }
@@ -238,7 +233,7 @@ class Station {
 
             case "startedSending":
                 console.log("injectou" + this.stationPosition);
-                this.mediumConnection.injectSignal(this.currentSendingSignal);
+                this.mediumConnection.injectSignal();
 
                 this.machineState = 'sending';
 

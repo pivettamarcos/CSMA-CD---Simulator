@@ -28,11 +28,11 @@
 <body>
 
 
-    <canvas id="simulationCanvas" width='1280' height= '720' style="background-color: #eeeeee">
+    <canvas id="simulationCanvas" width='1600' height= '900' style="background-color: #eeeeee">
 
     </canvas>
 
-    <h5>Simulador CSMA/CD</h5>
+    <h5 style="margin-left: 20px">Simulador CSMA/CD</h5>
 
     <div class="row">
         <div class="col s3">
@@ -43,15 +43,6 @@
                     </div>
                     <div class="input-field col s4">
                         <a class="waves-effect waves-light btn" id="buttonStartSimulation">Criar meio</a>
-                    </div>   
-            </div>
-            <div class="row">
-                    <div class="input-field col s8">
-
-                        <input id="inputStationPosition" placeholder="Posição da estação no meio" type="text">
-                    </div>
-                    <div class="input-field col s4">
-                        <a class="waves-effect waves-light btn-small" id="buttonCreateStation">Adicionar nova estação</a>
                     </div>   
             </div>
         </div>
@@ -65,26 +56,6 @@
                     </div>   
 
         </div>
-    </div>
-
-    <div>
-        <button id="buttonStartSimulation"> Começar simulação do CSMA/CD </button>
-    </div>
-
-    <div>
-        <button id="buttonAssembleFrame"> Criar frame </button>
-    </div>
-
-
-    <div>
-        <input type="text" placeholder="Estação emissora" id="inputStationEmitter"> </input>
-
-
-        <button id="buttonInjectSignal"> Injetar Sinal </button>
-    </div>
-
-    <div>
-        <button id="buttonIsMediumIdle"> Verificar liberdade do meio </button>
     </div>
 
     <script type="text/javascript" src="js/materialize.min.js"></script>

@@ -173,24 +173,6 @@ function addEventListeners() {
 
         document.getElementById("inputChangeSecsBetweenTimeSlots").value = "";
     });
-
-    document.getElementById("buttonAssembleFrame").addEventListener("click", () => {
-        console.log("++ Assembling frame "+simulation.stations[0].assembleFrame());
-    });
-
-    document.getElementById("buttonCreateStation").addEventListener("click", () => {
-        simulation.createStation(document.getElementById("inputStationPosition").value);
-
-        document.getElementById("inputStationPosition").value = "";
-
-    });
-
-    document.getElementById("buttonInjectSignal").addEventListener("click", () => {
-        simulation.stations[document.getElementById("inputStationEmitter").value].postMessage({type: "injectSignal"});
-
-        document.getElementById("inputStationEmitter").value = "";
-
-    });
 }
 
 window.onload = addEventListeners;
